@@ -13,10 +13,11 @@ vector_file <- "/Users/pradhanmanva/Downloads/R for DS/Project2/recommendation-s
 corpus_file <- "/Users/pradhanmanva/Downloads/R for DS/Project2/recommendation-search-engine/summary_corpus.RData"
 
 #read the data from "plot_summaries.txt" and save the data into a file
-if (file.exists(vector_file)){
+if (!file.exists(vector_file)){
   plot_summary <- read.delim(data_file, header=FALSE, sep = "\t", quote="")
   plot_summary$V2 <- as.character(plot_summary$V2)
   saveRDS(plot_summary, "plot_summary.RData")
+  print("Saved!")
 }
 #reading the saved data.
 plot_summary <- readRDS("plot_summary.RData")
@@ -32,6 +33,7 @@ if(!file.exists(corpus_file)){
   summary_corpus <- VCorpus(VectorSource(summary_data))
   summary_corpus <- tm_map(summary_corpus, addspace, "-")
   summary_corpus <- tm_map(summary_corpus, addspace, "'")
+  summary_corpus <- tm_map(summary_corpus, addspace, "'")
   summary_corpus <- tm_map(summary_corpus, removePunctuation)
   summary_corpus <- tm_map(summary_corpus, removeNumbers)
   summary_corpus <- tm_map(summary_corpus, removeWords, stopwords("english"))
@@ -43,5 +45,11 @@ if(!file.exists(corpus_file)){
   summary_dtm <- DocumentTermMatrix(summary_corpus, control = list(weighting = function(x) weightTfIdf(x, normalize = FALSE),
     stopwords = TRUE))
   saveRDS(summary_dtm, "summary_corpus.RData")
+  print("Saved!")
 }
 summary_dtm <- readRDS("summary_corpus.RData")
+
+
+#gsub("e", "", group)
+
+
