@@ -8,9 +8,9 @@ sc <- sparkR.init()
 sqlContext <- sparkRSQL.init(sc)
 
 #setting up file paths
-data_file <- "/Users/pradhanmanva/Downloads/R for DS/Project2/recommendation-search-engine/input/plot_summaries.txt"
-vector_file <- "/Users/pradhanmanva/Downloads/R for DS/Project2/recommendation-search-engine/plot_summary.RData"
-corpus_file <- "/Users/pradhanmanva/Downloads/R for DS/Project2/recommendation-search-engine/summary_corpus.RData"
+data_file <- "input/plot_summaries.txt"
+vector_file <- "plot_summary.RData"
+corpus_file <- "summary_corpus.RData"
 
 #read the data from "plot_summaries.txt" and save the data into a file
 if (!file.exists(vector_file)){
@@ -49,7 +49,9 @@ if(!file.exists(corpus_file)){
 }
 summary_dtm <- readRDS("summary_corpus.RData")
 
+summary_dtm$dimnames$Docs <- as.numeric(summary_dtm$dimnames$Docs)
+summary_dtm$dimnames$Terms <- as.character(summary_dtm$dimnames$Terms)
+terms <- summary_dtm$dimnames$Terms
 
-#gsub("e", "", group)
-
+clean
 
