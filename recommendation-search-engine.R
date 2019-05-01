@@ -31,9 +31,6 @@ if(!file.exists(corpus_file)){
     return(gsub(pattern, " ", x))
   })
   summary_corpus <- VCorpus(VectorSource(summary_data))
-  summary_corpus <- tm_map(summary_corpus, addspace, "-")
-  summary_corpus <- tm_map(summary_corpus, addspace, "'")
-  summary_corpus <- tm_map(summary_corpus, addspace, "'")
   summary_corpus <- tm_map(summary_corpus, removePunctuation)
   summary_corpus <- tm_map(summary_corpus, removeNumbers)
   summary_corpus <- tm_map(summary_corpus, removeWords, stopwords("english"))
@@ -42,16 +39,14 @@ if(!file.exists(corpus_file)){
   
   #stemming the documents
   summary_corpus <- tm_map(summary_corpus, stemDocument)
-  summary_dtm <- DocumentTermMatrix(summary_corpus, control = list(weighting = function(x) weightTfIdf(x, normalize = FALSE),
-    stopwords = TRUE))
+  summary_dtm <- DocumentTermMatrix(summary_corpus, control = list(weighting = function(x) weightTfIdf(x, normalize = FALSE), stopwords = TRUE))
   saveRDS(summary_dtm, "summary_corpus.RData")
   print("Saved!")
 }
 summary_dtm <- readRDS("summary_corpus.RData")
 
-summary_dtm$dimnames$Docs <- as.numeric(summary_dtm$dimnames$Docs)
-summary_dtm$dimnames$Terms <- as.character(summary_dtm$dimnames$Terms)
-terms <- summary_dtm$dimnames$Terms
+# summary_dtm$dimnames$Docs <- as.numeric(summary_dtm$dimnames$Docs)
+# summary_dtm$dimnames$Terms <- as.character(summary_dtm$dimnames$Terms)
+# summary_dtm$dimnames$Terms <- gsub("[^[:alpha:] ]","", summary_dtm$dimnames$Terms)
 
-clean
 
