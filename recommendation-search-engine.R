@@ -57,3 +57,8 @@ if(!file.exists(dtm_df_file)){
 }
 plot_tdidf <- readRDS(dtm_df_file)
 
+#removing punctuation from the plot_tdidf$terms
+gsub("[^[:alpha:] ]","", plot_tdidf$term)
+
+#convert plot_tdidf$docs to integer
+plot_tdidf$document <- as.integer(plot_tdidf$document)
