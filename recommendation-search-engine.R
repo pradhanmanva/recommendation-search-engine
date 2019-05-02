@@ -4,6 +4,9 @@ require(SnowballC)
 require(SparkR)
 require(dplyr)
 require(tidytext)
+require(stringr)
+require(ggplot2)
+require(proxy)
 
 #setting up the Spark session
 sc <- sparkR.init()
@@ -37,12 +40,12 @@ if(!file.exists(corpus_file)){
   summary_corpus <- tm_map(summary_corpus, removePunctuation)
   summary_corpus <- tm_map(summary_corpus, removeNumbers)
   summary_corpus <- tm_map(summary_corpus, content_transformer(tolower))
-  summary_corpus <- tm_map(summary_corpus, removeWords, stopwords("english"))
+  summary_corpus <- tm_map(summary_corpus, removeWords, stopwords(kind="en"))
   summary_corpus <- tm_map(summary_corpus, stripWhitespace)
   
   #stemming the documents
   summary_corpus <- tm_map(summary_corpus, stemDocument)
-  summary_dtm <- DocumentTermMatrix(summary_corpus, control = list(weighting = function(x) weightTfIdf(x, normalize = FALSE), stopwords = TRUE))
+  summary_dtm <- DocumentTermMatrix(summary_corpus, control = list(weighting = function(x) weightTfIdf(x, normalize = TRUE), stopwords = TRUE))
   saveRDS(summary_dtm, corpus_file)
   print("Saved!")
 }
@@ -62,3 +65,20 @@ gsub("[^[:alpha:] ]","", plot_tdidf$term)
 
 #convert plot_tdidf$docs to integer
 plot_tdidf$document <- as.integer(plot_tdidf$document)
+
+#group by on plot_tdidf$document
+plot_tdidf %>%
+  group_by(document) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(document,n)) +
+  geom_line() 
+
+
+#single word query
+plot_tdidf %>%
+  filter(str_detect(plot_tdidf$term, "comedy")) %>%
+  arrange(desc(tf_idf))
+
+#multi word similiarity
+
+  
