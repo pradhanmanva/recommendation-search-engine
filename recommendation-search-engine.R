@@ -1,7 +1,9 @@
 #loading the required packages in R session
-require(SparkR)
 require(tm)
 require(SnowballC)
+require(SparkR)
+require(dplyr)
+require(tidytext)
 
 #setting up the Spark session
 sc <- sparkR.init()
