@@ -1,3 +1,6 @@
+docList <- plot_summary$V2
+N.doc <- length(docList)
+
 QrySearch <- function(query_term) {
   
   # Record starting time to measure your search engine performance
@@ -67,6 +70,4 @@ QrySearch <- function(query_term) {
   return(searchRes)
   
 }
-
-
 QrySearch("data science")
