@@ -9,4 +9,3 @@ plot_tdidf %>%
   ggplot(aes(document,n)) +
   geom_line() 
 
-

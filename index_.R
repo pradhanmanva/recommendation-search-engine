@@ -6,7 +6,7 @@ require(dplyr)
 require(tidytext)
 require(stringr)
 require(ggplot2)
-require(proxy)
+require(text2vec)
 
 #setting up the Spark session
 sc <- sparkR.init()
@@ -42,7 +42,7 @@ if(!file.exists(corpus_file)){
   
   #stemming the documents
   summary_corpus <- tm_map(summary_corpus, stemDocument)
-  summary_dtm <- DocumentTermMatrix(summary_corpus, control = list(weighting = function(x) weightTfIdf(x, normalize = TRUE), stopwords = TRUE))
+  summary_dtm <- DocumentTermMatrix(summary_corpus, control = list(weighting = function(x) weightTfIdf(x), stopwords = TRUE))
   saveRDS(summary_dtm, corpus_file)
   print("Saved!")
 }
@@ -72,17 +72,16 @@ plot_tdidf %>%
 
 
 #single word query
-plot_tdidf <- plot_tdidf %>%
+plot_tdidf %>%
   filter(str_detect(plot_tdidf$term, "comedy")) %>%
   arrange(desc(tf_idf))
 
-word<-"comedy"
+word<-"action"
+
 top_10_results <- plot_tdidf %>%
   filter(str_detect(plot_tdidf$term, word)) %>%
   arrange(desc(tf_idf)) %>%
   select(document, term, tf_idf) %>%
   top_n(10, tf_idf)
 
-
-temp <- plot_summary[top_10_results$document
-                     ]
+results <- plot_summary[top_10_results$document,]
