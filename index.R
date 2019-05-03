@@ -12,9 +12,10 @@ setwd(getwd())
 
 #setting up file paths
 data_file <- "input/plot_summaries.txt"
-vector_file <- "plot_summary.RData"
+vector_file <- "summary.RData"
 corpus_file <- "summary_corpus.RData"
-datraframe_file <- "summary_df.RData"
+dtm_file <- "summary_dtm.RData"
+dataframe_file <- "summary_df.RData"
 
 #reading the file and saving the data into local to save time
 getDataFromFile <- function(file_name) {
@@ -50,26 +51,37 @@ getCorpusFromDocument <- function(documents) {
   return(corpus)
 }
 
-#getting the Dataframe from the DTM generated from the corpus
-getDFfromCorpus <- function(corpus) {
-  if(!file.exists(dataframe_file)) {
-    document_dtm <- DocumentTermMatrix(corpus, control = list(weighting = function(x) 
+#generating DTM from the given corpus with TD-IDF weighting
+getDTMFromCorpus <- function(corpus) {
+  if(!file.exists(dtm_file)) {
+    dtm <- DocumentTermMatrix(corpus, control = list(weighting = function(x) 
       weightTfIdf(x),
-      stopwords = TcorRUE,
-      wordLengths = c(1, Inf)
+      stopwords = TRUE
     )
     )
-    document_df <- tidy(document_dtm) %>%
-      document_df <- bind_tf_idf(term = term, document = document, n = count)
-    document_df$term <- gsub("[^[:alpha:] ]", "", document_df$term) %>%
-      document_df$document <- as.integer(document_df$document)
-    saveRDS(document_df, dataframe_file)
+    saveRDS(dtm, dtm_file)
     print("Saved!")
   }
   else {
-    document_df <- readRDS(dataframe_file)
+    dtm <- readRDS(dtm_file)
   }
-  return(document_df)
+  return(dtm)
+}
+
+#getting the Dataframe from the DTM
+getDFfromDTM <- function(dtm) {
+  if(!file.exists(dataframe_file)) {
+    df <- tidy(dtm)
+    df <- bind_tf_idf(df, term = term, document = document, n = count)
+    df$term <- gsub("[^[:alpha:] ]", "", df$term)
+    df$document <- as.integer(df$document)
+    saveRDS(df, dataframe_file)
+    print("Saved!")
+  }
+  else {
+    df <- readRDS(dataframe_file)
+  }
+  return(df)
 }
 
 singleword_query <- function (word) {
@@ -104,4 +116,5 @@ while (query != "q") {
 
 temp <- getDataFromFile(data_file)
 corpus <- getCorpusFromDocument(temp$V2)
-dtm <- getDFfromCorpus(corpus)
+dtm <- getDTMFromCorpus(corpus)
+df <- getDFfromDTM(dtm)
