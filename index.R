@@ -6,7 +6,6 @@ require(dplyr)
 require(tidytext)
 require(stringr)
 require(ggplot2)
-require(proxy)
 
 setwd(getwd())
 
@@ -102,19 +101,24 @@ multiword_query <- function(words) {
 
 #main program starts
 print("Welcome to Recommendation Search Engine!")
-query <- "q"
+query <- ""
 while (query != "q") {
   query <- readline("Enter your query : ")
   x <- unlist(strsplit(query, " "))
-  if (length(x) == 1) {
-    results <- singleword_query(x)
-  }
-  else{
-    results <- multiword_query(paste(x, collapse = " "))
+  if (query != "q") {
+    if (length(x) == 1) {
+      #results <- singleword_query(x)
+      print("Single")
+    }
+    else{
+      #results <- multiword_query(paste(x, collapse = " "))
+      print("Multi")
+    }
   }
 }
-
+x <- c("movies","on","action")
 temp <- getDataFromFile(data_file)
 corpus <- getCorpusFromDocument(temp$V2)
 dtm <- getDTMFromCorpus(corpus)
 df <- getDFfromDTM(dtm)
+temp <- TermDocumentMatrix(corpus, list(dictionary = x))
