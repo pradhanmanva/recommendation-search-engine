@@ -11,10 +11,10 @@ setwd(getwd())
 
 #setting up file paths
 data_file <- "input/plot_summaries.txt"
-vector_file <- "summary.RData"
-corpus_file <- "summary_corpus.RData"
-dtm_file <- "summary_dtm.RData"
-dataframe_file <- "summary_df.RData"
+vector_file <- "backups/summary.RData"
+dtm_file <- "backups/summary_dtm.RData"
+tdm_file <- "backups/summary_tdm.RData"
+dataframe_file <- "backups/summary_df.RData"
 
 #reading the file and saving the data into local to save time
 getDataFromFile <- function(file_name) {
@@ -67,36 +67,68 @@ getDTMFromCorpus <- function(corpus) {
   return(dtm)
 }
 
-#getting the Dataframe from the DTM
-getDFfromDTM <- function(dtm) {
-  if(!file.exists(dataframe_file)) {
-    df <- tidy(dtm)
-    df <- bind_tf_idf(df, term = term, document = document, n = count)
-    df$term <- gsub("[^[:alpha:] ]", "", df$term)
-    df$document <- as.integer(df$document)
-    saveRDS(df, dataframe_file)
+getTDMFromCorpus <- function(corpus) {
+  if(!file.exists(tdm_file)) {
+    tdm <- TermDocumentMatrix(corpus, control = list(weighting = function(x) 
+      weightSMART(x,spec="ltc"),
+      wordLengths=c(1,Inf)))
+    saveRDS(tdm, tdm_file)
     print("Saved!")
   }
   else {
-    df <- readRDS(dataframe_file)
+    tdm <- readRDS(tdm_file)
   }
+  return(tdm)
+}
+
+#getting the Dataframe from the DTM
+getDFfromDTM <- function(dtm) {
+  df <- tidy(dtm)
+  df <- bind_tf_idf(df, term = term, document = document, n = count)
+  df$term <- gsub("[^[:alpha:] ]", "", df$term)
+  df$document <- as.integer(df$document)
   return(df)
 }
 
 singleword_query <- function (word) {
-  top_10_results <- plot_tdidf %>%
-    filter(str_detect(plot_tdidf$term, word)) %>%
+  word <- tolower(word)
+  top_10_results <- df %>%
+    filter(str_detect(df$term, word)) %>%
     arrange(desc(tf_idf)) %>%
     select(document, term, tf_idf) %>%
     top_n(10, tf_idf)
   
-  temp <-
-    left_join(top_10_results, plot_summary, by = c("document" = "V1")) %>%
-    select (document, V2)
+  temp <- left_join(top_10_results, data, by = c("document" = "V1")) %>%
+    select (document)
+  return(data[temp$document,])
 }
 
-multiword_query <- function(words) {
+multiword_query <- function(df) {
+  docLen <- length(data$V2)
+  df <- df %>% 
+    group_by(document) %>% 
+    mutate(docLen = sqrt(sum(count^2))) %>% 
+    mutate(count = count/docLen) %>% 
+    ungroup() %>% 
+    select(term:count)
   
+  documentMatrix <- df %>% 
+    mutate(document=as.numeric(document)) %>% 
+    filter(document < docLen + 1)
+  queryMatrix <- df %>% 
+    mutate(document=as.numeric(document)) %>% 
+    filter(document >= docLen + 1)
+  
+  top_10_documents <- documentMatrix %>% 
+    inner_join(queryMatrix, by=c("term"="term"), suffix=c(".doc",".query")) %>% 
+    mutate(term_score = round(count.doc * count.query, 5)) %>% 
+    group_by(document.query, document.doc) %>% 
+    summarise(score = sum(term_score)) %>%
+    arrange(desc(score)) %>%
+    top_n(10, score)
+  
+  temp <- left_join(top_10_documents, data, by = c("document.doc" = "V1"))
+  return(data[temp$document.doc,])
 }
 
 #main program starts
@@ -107,18 +139,29 @@ while (query != "q") {
   x <- unlist(strsplit(query, " "))
   if (query != "q") {
     if (length(x) == 1) {
-      #results <- singleword_query(x)
-      print("Single")
+      #single word query
+      #calculating top 10 tdidf documents for the query word
+      corpus_file <- "backups/summary_corpus1.RData"
+      data <- getDataFromFile(data_file)
+      corpus <- getCorpusFromDocument(df$V2)
+      dtm <- getDTMFromCorpus(corpus)
+      df <- getDFfromDTM(dtm)
+      results <- singleword_query(x)
     }
     else{
-      #results <- multiword_query(paste(x, collapse = " "))
-      print("Multi")
+      #multi-word query
+      #calculating the cosine similiarity between the query and the documents
+      words <- tolower(paste(gsub("[^[:alpha:] ]", "", x), collapse = " "))
+      corpus_file <- "backups/summary_corpus2.RData"
+      data <- getDataFromFile(data_file)
+      corpus <- getCorpusFromDocument(c(data$V2, words))
+      tdm <- getTDMFromCorpus(corpus)
+      df <- getDFfromDTM(tdm) 
+      results <- multiword_query(df)
     }
+    print(results)
+  }
+  else {
+    x <- ""
   }
 }
-x <- c("movies","on","action")
-temp <- getDataFromFile(data_file)
-corpus <- getCorpusFromDocument(temp$V2)
-dtm <- getDTMFromCorpus(corpus)
-df <- getDFfromDTM(dtm)
-temp <- TermDocumentMatrix(corpus, list(dictionary = x))
