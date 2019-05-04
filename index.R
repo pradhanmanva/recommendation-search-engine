@@ -149,6 +149,7 @@ while (query != "q") {
       results <- multiword_query(df)
     }
     print(results)
+    View(results)
   }
   else {
     x <- ""
