@@ -5,79 +5,47 @@ require(SparkR)
 require(dplyr)
 require(tidytext)
 require(stringr)
-require(ggplot2)
 
 setwd(getwd())
 
 #setting up file paths
 data_file <- "input/plot_summaries.txt"
-vector_file <- "backups/summary.RData"
-dtm_file <- "backups/summary_dtm.RData"
-tdm_file <- "backups/summary_tdm.RData"
-dataframe_file <- "backups/summary_df.RData"
 
 #reading the file and saving the data into local to save time
 getDataFromFile <- function(file_name) {
-  if(!file.exists(vector_file)) {
-    data <- read.delim(file_name, header = FALSE, sep = "\t", quote = "") 
-    data$V1 <- as.integer(data$V1)
-    data$V2 <- as.character(data$V2)
-    saveRDS(data, vector_file)
-    print("Saved.")
-  }
-  else {
-    data <- readRDS(vector_file)
-  }
+  data <- read.delim(file_name, header = FALSE, sep = "\t", quote = "") 
+  data$V1 <- as.integer(data$V1)
+  data$V2 <- as.character(data$V2)
   return(data)
 }
 
 #getting clean corpus from the documents given (summary plots)
 getCorpusFromDocument <- function(documents) {
-  if(!file.exists(corpus_file)) {
-    corpus <- VCorpus(VectorSource(documents)) %>%
-      tm_map(stemDocument) %>%
-      tm_map(removePunctuation) %>%
-      tm_map(removeNumbers) %>%
-      tm_map(content_transformer(tolower)) %>%
-      tm_map(removeWords, stopwords("en")) %>%
-      tm_map(stripWhitespace)
-    saveRDS(corpus, corpus_file)
-    print("Saved.")
-  }
-  else {
-    corpus <- readRDS(corpus_file)
-  }
+  corpus <- VCorpus(VectorSource(documents)) %>%
+    tm_map(stemDocument) %>%
+    tm_map(removePunctuation) %>%
+    tm_map(removeNumbers) %>%
+    tm_map(content_transformer(tolower)) %>%
+    tm_map(removeWords, stopwords("en")) %>%
+    tm_map(stripWhitespace)
   return(corpus)
 }
 
 #generating DTM from the given corpus with TD-IDF weighting
 getDTMFromCorpus <- function(corpus) {
-  if(!file.exists(dtm_file)) {
-    dtm <- DocumentTermMatrix(corpus, control = list(weighting = function(x) 
-      weightTfIdf(x),
-      stopwords = TRUE
-    )
-    )
-    saveRDS(dtm, dtm_file)
-    print("Saved!")
-  }
-  else {
-    dtm <- readRDS(dtm_file)
-  }
+  dtm <- DocumentTermMatrix(corpus, control = list(weighting = function(x) 
+    weightTfIdf(x),
+    stopwords = TRUE
+  )
+  )
   return(dtm)
 }
 
+#generating the TDM from the corpus+query
 getTDMFromCorpus <- function(corpus) {
-  if(!file.exists(tdm_file)) {
-    tdm <- TermDocumentMatrix(corpus, control = list(weighting = function(x) 
-      weightSMART(x,spec="ltc"),
-      wordLengths=c(1,Inf)))
-    saveRDS(tdm, tdm_file)
-    print("Saved!")
-  }
-  else {
-    tdm <- readRDS(tdm_file)
-  }
+  tdm <- TermDocumentMatrix(corpus, control = list(weighting = function(x) 
+    weightSMART(x,spec="ltc"),
+    wordLengths=c(1,Inf)))
   return(tdm)
 }
 
@@ -90,6 +58,7 @@ getDFfromDTM <- function(dtm) {
   return(df)
 }
 
+#for single word query
 singleword_query <- function (word) {
   word <- tolower(word)
   top_10_results <- df %>%
@@ -103,6 +72,7 @@ singleword_query <- function (word) {
   return(data[temp$document,])
 }
 
+#for multi word query
 multiword_query <- function(df) {
   docLen <- length(data$V2)
   df <- df %>% 
@@ -131,6 +101,27 @@ multiword_query <- function(df) {
   return(data[temp$document.doc,])
 }
 
+#UI Logic
+ui <- fluidPage(
+  titlePanel("Recommendation Search Engine"),
+  sidebarLayout(
+    sidebarPanel(
+      helpText("Type in query to see the movie plots that match best."),
+      textInput("query", h3("Text input", align = "center"), value = "")),
+    mainPanel(
+      h2("Let's see how this engine works.", align = "left"),
+      h4("Let's see how it works"),
+      p("We have to put in the query (single or multiword) that results in creating a Vector of Documents. Then a Document-Term/ Term-Document Matrix is generated with respect to the query and normalized weighted Term Frequency - Inverse Document Frequency (TD-IDF)."),
+      p("Then this DTM/TDM is converted to dataframe (tibble) for further processing. We strip the ", em("dataframe$terms"), " to lower alphabets. Then filter out the ", em("dataframe$terms"), " and get only relevant ones."),
+      p("In case of single word query, only top ten documents (plot summaries) with highest TD-IDF are returned in the results, while in multi word query, the cosine similiarity between query and documents is calculated. Top ten similiar documents are returned in the results."),
+      h3("Here are the results: "),
+      textOutput("message"),
+      dataTableOutput("results")
+    )
+  )
+)
+
+
 #main program starts
 print("Welcome to Recommendation Search Engine!")
 query <- ""
@@ -141,9 +132,8 @@ while (query != "q") {
     if (length(x) == 1) {
       #single word query
       #calculating top 10 tdidf documents for the query word
-      corpus_file <- "backups/summary_corpus1.RData"
       data <- getDataFromFile(data_file)
-      corpus <- getCorpusFromDocument(df$V2)
+      corpus <- getCorpusFromDocument(data$V2)
       dtm <- getDTMFromCorpus(corpus)
       df <- getDFfromDTM(dtm)
       results <- singleword_query(x)
@@ -152,7 +142,6 @@ while (query != "q") {
       #multi-word query
       #calculating the cosine similiarity between the query and the documents
       words <- tolower(paste(gsub("[^[:alpha:] ]", "", x), collapse = " "))
-      corpus_file <- "backups/summary_corpus2.RData"
       data <- getDataFromFile(data_file)
       corpus <- getCorpusFromDocument(c(data$V2, words))
       tdm <- getTDMFromCorpus(corpus)
@@ -163,5 +152,6 @@ while (query != "q") {
   }
   else {
     x <- ""
+    
   }
 }
