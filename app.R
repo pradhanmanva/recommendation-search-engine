@@ -128,41 +128,41 @@ server <- function(input, output) {
   #main program starts
   print("Welcome to Recommendation Search Engine!")
   
-  #use the query (posted in the input)
-  query <- input$query
-  
-  if (query == "") {
-    query<-"q"
-  }
-  
-  x <- unlist(strsplit(query, " "))
-  if (query != "q") {
-    if (length(x) == 1) {
-      #single word query
-      #calculating top 10 tdidf documents for the query word
-      data <- getDataFromFile(data_file)
-      corpus <- getCorpusFromDocument(data$V2)
-      dtm <- getDTMFromCorpus(corpus)
-      df <- getDFfromDTM(dtm)
-      results <- singleword_query(x)
-    }
-    else{
-      #multi-word query
-      #calculating the cosine similiarity between the query and the documents
-      words <- tolower(paste(gsub("[^[:alpha:] ]", "", x), collapse = " "))
-      data <- getDataFromFile(data_file)
-      corpus <- getCorpusFromDocument(c(data$V2, words))
-      tdm <- getTDMFromCorpus(corpus)
-      df <- getDFfromDTM(tdm) 
-      results <- multiword_query(df)
-    }
-    print(results)
-  }
-  else {
-    x <- ""
-    output$message <- renderText("Thank you so much for using the engine.")
-  }
-  output$results <- renderDataTable(results)
+  # #use the query (posted in the input)
+  # query <- input$query
+  # 
+  # if (query == "") {
+  #   query<-"q"
+  # }
+  # 
+  # x <- unlist(strsplit(query, " "))
+  # if (query != "q") {
+  #   if (length(x) == 1) {
+  #     #single word query
+  #     #calculating top 10 tdidf documents for the query word
+  #     data <- getDataFromFile(data_file)
+  #     corpus <- getCorpusFromDocument(data$V2)
+  #     dtm <- getDTMFromCorpus(corpus)
+  #     df <- getDFfromDTM(dtm)
+  #     results <- singleword_query(x)
+  #   }
+  #   else{
+  #     #multi-word query
+  #     #calculating the cosine similiarity between the query and the documents
+  #     words <- tolower(paste(gsub("[^[:alpha:] ]", "", x), collapse = " "))
+  #     data <- getDataFromFile(data_file)
+  #     corpus <- getCorpusFromDocument(c(data$V2, words))
+  #     tdm <- getTDMFromCorpus(corpus)
+  #     df <- getDFfromDTM(tdm) 
+  #     results <- multiword_query(df)
+  #   }
+  #   print(results)
+  # }
+  # else {
+  #   x <- ""
+  #   output$message <- renderText("Thank you so much for using the engine.")
+  # }
+  # output$results <- renderDataTable(results)
 }
 
 # Run the app ----

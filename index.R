@@ -9,14 +9,16 @@ require(stringr)
 setwd(getwd())
 
 #setting up file paths
-data_file <- "input/plot_summaries.txt"
+data_file <- "http://utdallas.edu/~rxk164330/MovieSummaries/plot_summaries.txt"
 
 #reading the file and saving the data into local to save time
 getDataFromFile <- function(file_name) {
-  data <- read.delim(file_name, header = FALSE, sep = "\t", quote = "") 
-  data$V1 <- as.integer(data$V1)
-  data$V2 <- as.character(data$V2)
-  return(data)
+  #Reading the input data file
+  plot_summary <- read.delim(file_name, header=FALSE, sep = "\t", quote="")
+  names(plot_summary)<-c("Id","Summary")
+  plot_summary$Id <- as.integer(plot_summary$Id)
+  plot_summary$Summary <- as.character(plot_summary$Summary)
+  return (plot_summary)
 }
 
 #getting clean corpus from the documents given (summary plots)
@@ -45,7 +47,7 @@ getDTMFromCorpus <- function(corpus) {
 getTDMFromCorpus <- function(corpus) {
   tdm <- TermDocumentMatrix(corpus, control = list(weighting = function(x) 
     weightSMART(x,spec="ltc"),
-    wordLengths=c(1,Inf)))
+    wordLengths=c(1, Inf)))
   return(tdm)
 }
 
@@ -67,9 +69,9 @@ singleword_query <- function (word) {
     select(document, term, tf_idf) %>%
     top_n(10, tf_idf)
   
-  temp <- left_join(top_10_results, data, by = c("document" = "V1")) %>%
-    select (document)
-  return(data[temp$document,])
+  # temp <- left_join(top_10_results, data, by = c("document" = "V1")) %>%
+  #   select (document)
+  return(data[top_10_results$document,])
 }
 
 #for multi word query
@@ -108,7 +110,10 @@ while (query != "q") {
   query <- readline("Enter your query : ")
   x <- unlist(strsplit(query, " "))
   if (query != "q") {
-    if (length(x) == 1) {
+    if(query == "") {
+      print("Empty String!")
+    }
+    else if (length(x) == 1) {
       #single word query
       #calculating top 10 tdidf documents for the query word
       data <- getDataFromFile(data_file)
@@ -116,6 +121,8 @@ while (query != "q") {
       dtm <- getDTMFromCorpus(corpus)
       df <- getDFfromDTM(dtm)
       results <- singleword_query(x)
+      print(results)
+      View(results)
     }
     else{
       #multi-word query
@@ -126,9 +133,10 @@ while (query != "q") {
       tdm <- getTDMFromCorpus(corpus)
       df <- getDFfromDTM(tdm) 
       results <- multiword_query(df)
+      print(results)
+      View(results)
     }
-    print(results)
-    View(results)
+    
   }
   else {
     x <- ""
