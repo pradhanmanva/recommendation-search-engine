@@ -11,18 +11,29 @@ setwd(getwd())
 
 #setting up file paths
 data_file <- "input/plot_summaries.txt"
+vector_file <- "backups/summary.RData"
+dtm_file <- "backups/summary_dtm.RData"
+tdm_file <- "backups/summary_tdm.RData"
+dataframe_file <- "backups/summary_df.RData"
 
 #reading the file and saving the data into local to save time
 getDataFromFile <- function(file_name) {
+  if(!file.exists(vector_file)) {
     data <- read.delim(file_name, header = FALSE, sep = "\t", quote = "") 
     data$V1 <- as.integer(data$V1)
     data$V2 <- as.character(data$V2)
+    saveRDS(data, vector_file)
+    print("Saved.")
+  }
+  else {
+    data <- readRDS(vector_file)
+  }
   return(data)
 }
 
 #getting clean corpus from the documents given (summary plots)
 getCorpusFromDocument <- function(documents) {
-  
+  if(!file.exists(corpus_file)) {
     corpus <- VCorpus(VectorSource(documents)) %>%
       tm_map(stemDocument) %>%
       tm_map(removePunctuation) %>%
@@ -30,23 +41,43 @@ getCorpusFromDocument <- function(documents) {
       tm_map(content_transformer(tolower)) %>%
       tm_map(removeWords, stopwords("en")) %>%
       tm_map(stripWhitespace)
+    saveRDS(corpus, corpus_file)
+    print("Saved.")
+  }
+  else {
+    corpus <- readRDS(corpus_file)
+  }
   return(corpus)
 }
 
 #generating DTM from the given corpus with TD-IDF weighting
 getDTMFromCorpus <- function(corpus) {
+  if(!file.exists(dtm_file)) {
     dtm <- DocumentTermMatrix(corpus, control = list(weighting = function(x) 
       weightTfIdf(x),
       stopwords = TRUE
     )
     )
+    saveRDS(dtm, dtm_file)
+    print("Saved!")
+  }
+  else {
+    dtm <- readRDS(dtm_file)
+  }
   return(dtm)
 }
 
 getTDMFromCorpus <- function(corpus) {
+  if(!file.exists(tdm_file)) {
     tdm <- TermDocumentMatrix(corpus, control = list(weighting = function(x) 
       weightSMART(x,spec="ltc"),
       wordLengths=c(1,Inf)))
+    saveRDS(tdm, tdm_file)
+    print("Saved!")
+  }
+  else {
+    tdm <- readRDS(tdm_file)
+  }
   return(tdm)
 }
 
@@ -110,8 +141,9 @@ while (query != "q") {
     if (length(x) == 1) {
       #single word query
       #calculating top 10 tdidf documents for the query word
+      corpus_file <- "backups/summary_corpus1.RData"
       data <- getDataFromFile(data_file)
-      corpus <- getCorpusFromDocument(data$V2)
+      corpus <- getCorpusFromDocument(df$V2)
       dtm <- getDTMFromCorpus(corpus)
       df <- getDFfromDTM(dtm)
       results <- singleword_query(x)
@@ -120,6 +152,7 @@ while (query != "q") {
       #multi-word query
       #calculating the cosine similiarity between the query and the documents
       words <- tolower(paste(gsub("[^[:alpha:] ]", "", x), collapse = " "))
+      corpus_file <- "backups/summary_corpus2.RData"
       data <- getDataFromFile(data_file)
       corpus <- getCorpusFromDocument(c(data$V2, words))
       tdm <- getTDMFromCorpus(corpus)
