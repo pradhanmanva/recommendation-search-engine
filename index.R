@@ -1,7 +1,6 @@
 #loading the required packages in R session
 require(tm)
 require(SnowballC)
-require(SparkR)
 require(dplyr)
 require(tidytext)
 require(stringr)
@@ -10,7 +9,7 @@ setwd(getwd())
 
 #setting up file paths
 data_file <- "http://utdallas.edu/~rxk164330/MovieSummaries/plot_summaries.txt"
-
+movie_file <- "http://utdallas.edu/~rxk164330/MovieSummaries/movie.metadata.tsv"
 #reading the file and saving the data into local to save time
 getDataFromFile <- function(file_name) {
   print("Reading Data.")
@@ -80,10 +79,13 @@ singleword_query <- function (word) {
     select(document, term, tf_idf) %>%
     top_n(10, tf_idf)
   
-  temp <- left_join(top_10_results, data, by = c("document" = "V1")) %>%
-     select (document)
+  temp <- left_join(top_10_results, data, by = c("document" = "V1"))
+  plots <- data[temp$document,2]
+  temp$plots <- plots
+  temp <- temp %>%
+    select(document, tf_idf, plots)
   print("Querying single word done")
-  return(data[temp$document,])
+  return(temp)
 }
 
 #for multi word query
@@ -113,9 +115,30 @@ multiword_query <- function(df) {
     top_n(10, score)
   
   temp <- left_join(top_10_documents, data, by = c("document.doc" = "V1"))
-  
+  plots <- data[temp$document.doc,2]
+  temp$plots <- plots
+  temp <- temp %>%
+    select(document.doc, score, plots)
+  names(temp) <- c("query", "document", "tf_idf", "plots")
+  print(temp)
   print("Querying multi word")
-  return(data[temp$document.doc,])
+  return(temp)
+}
+
+getMovieNames <- function(results) {
+  print("Computing Movie Names from given results")
+  #Reading the input data file
+  movie_data <- read.delim(file_name, header = FALSE, sep = "\t", quote = "")
+  movie_data <- movie_data %>%
+    select(V1, V3)
+  names(movie_data)<-c("number","movie")
+  movie_data$number <- as.integer(movie_data$number)
+  movie_data$movie <- as.character(movie_data$movie)
+  docnum <- data[results$document,1]
+  results$docnum <- docnum
+  movie_data <- left_join(results, movie_data, by = c("docnum" = "number")) %>%
+    select("movie", "plots", "tf_idf")
+  print("Computing Done.")
 }
 
 #main program starts
@@ -153,6 +176,15 @@ while (query != "q") {
       results <- multiword_query(df)
       print(results)
       View(results)
+      
+    }
+    if(nrow(results) == 0) {
+      print("No results found.")
+    }
+    else {
+      movie_names <- getMovieNames(results)
+      #print(movie_names[,c("plots", "tf_idf", "movie")])
+      View(movie_names)
     }
   }
   else{
